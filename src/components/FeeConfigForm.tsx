@@ -1,47 +1,29 @@
 import { useState } from 'react'
-import type { FormEvent } from 'react'
+import { useForm } from 'react-hook-form'
 import type { ConversionFee } from '../types'
+import {
+  feeFormResolver,
+  toConversionFee,
+  type FeeFormValues,
+} from '../validation/schemas'
+import { FeeTable } from './FeeTable'
+import { FormActions } from './form/FormActions'
+import { FieldRow } from './form/FieldRow'
+import { FormRootError } from './form/FormRootError'
+import { StackedForm } from './form/StackedForm'
+import { TextFormField } from './form/TextFormField'
+import { Panel } from './Panel'
 
 type FeeConfigFormProps = {
   fees: ConversionFee[]
   onUpsertFee: (fee: ConversionFee) => void
-  onRemoveFee: (from: string, to: string) => void
+  onRemoveFee: (id: string) => void
 }
 
-type FeeDraft = {
-  from: string
-  to: string
-  fee: string
-}
-
-const emptyDraft: FeeDraft = {
+const emptyValues: FeeFormValues = {
   from: '',
   to: '',
   fee: '',
-}
-
-function normalizeCurrency(value: string): string {
-  return value.trim().toUpperCase()
-}
-
-function validateDraft(draft: FeeDraft): string | null {
-  const from = normalizeCurrency(draft.from)
-  const to = normalizeCurrency(draft.to)
-  const fee = Number.parseFloat(draft.fee)
-
-  if (!from || !to) {
-    return 'Both currencies are required.'
-  }
-
-  if (from === to) {
-    return 'Source and target currency must be different.'
-  }
-
-  if (Number.isNaN(fee) || fee < 0) {
-    return 'Fee must be a non-negative number.'
-  }
-
-  return null
 }
 
 export function FeeConfigForm({
@@ -49,155 +31,91 @@ export function FeeConfigForm({
   onUpsertFee,
   onRemoveFee,
 }: FeeConfigFormProps) {
-  const [draft, setDraft] = useState<FeeDraft>(emptyDraft)
-  const [editingKey, setEditingKey] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
 
-  const sortedFees = [...fees].sort((left, right) => {
-    const leftKey = `${left.from}-${left.to}`
-    const rightKey = `${right.from}-${right.to}`
-    return leftKey.localeCompare(rightKey)
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<FeeFormValues>({
+    resolver: feeFormResolver,
+    defaultValues: emptyValues,
+    mode: 'onTouched',
   })
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-
-    const validationError = validateDraft(draft)
-
-    if (validationError) {
-      setError(validationError)
-      return
-    }
-
-    onUpsertFee({
-      from: normalizeCurrency(draft.from),
-      to: normalizeCurrency(draft.to),
-      fee: Number.parseFloat(draft.fee),
-    })
-
-    setDraft(emptyDraft)
-    setEditingKey(null)
-    setError(null)
-  }
+  const onSubmit = handleSubmit((values) => {
+    onUpsertFee(toConversionFee(values, editingId ?? undefined))
+    setEditingId(null)
+    reset(emptyValues)
+  })
 
   function startEditing(fee: ConversionFee) {
-    setEditingKey(`${fee.from}-${fee.to}`)
-    setDraft({
+    setEditingId(fee.id)
+    reset({
       from: fee.from,
       to: fee.to,
       fee: String(fee.fee),
     })
-    setError(null)
   }
 
   function cancelEditing() {
-    setEditingKey(null)
-    setDraft(emptyDraft)
-    setError(null)
+    setEditingId(null)
+    reset(emptyValues)
   }
 
   return (
-    <section className="panel">
-      <h2>Conversion Fees</h2>
-      <p className="hint">
-        Fees are direction-specific fractions. For example, enter 0.2 for a 20%
-        fee on EUR to GBP conversions.
-      </p>
+    <Panel
+      title="Conversion Fees"
+      description={
+        <>
+          Fees are direction-specific fractions. For example, enter 0.2 for a 20%
+          fee on EUR to GBP conversions.
+        </>
+      }
+    >
+      <FeeTable fees={fees} onEdit={startEditing} onRemove={onRemoveFee} />
 
-      {sortedFees.length > 0 ? (
-        <table className="fee-table">
-          <thead>
-            <tr>
-              <th>From</th>
-              <th>To</th>
-              <th>Fee</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedFees.map((fee) => (
-              <tr key={`${fee.from}-${fee.to}`}>
-                <td>{fee.from}</td>
-                <td>{fee.to}</td>
-                <td>{fee.fee}</td>
-                <td className="actions">
-                  <button type="button" onClick={() => startEditing(fee)}>
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    className="danger"
-                    onClick={() => onRemoveFee(fee.from, fee.to)}
-                  >
-                    Remove
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : (
-        <p className="empty-state">No custom fees configured yet.</p>
-      )}
+      <StackedForm onSubmit={onSubmit}>
+        <h3>{editingId ? 'Edit Fee' : 'Add Fee'}</h3>
+        <FieldRow>
+          <TextFormField
+            label="From"
+            error={errors.from?.message}
+            registration={register('from')}
+            placeholder="EUR"
+            maxLength={3}
+            autoComplete="off"
+          />
+          <TextFormField
+            label="To"
+            error={errors.to?.message}
+            registration={register('to')}
+            placeholder="GBP"
+            maxLength={3}
+            autoComplete="off"
+          />
+          <TextFormField
+            label="Fee"
+            error={errors.fee?.message}
+            registration={register('fee')}
+            placeholder="0.01"
+            inputMode="decimal"
+            step="any"
+          />
+        </FieldRow>
 
-      <form className="stacked-form" onSubmit={handleSubmit}>
-        <h3>{editingKey ? 'Edit Fee' : 'Add Fee'}</h3>
-        <div className="field-row">
-          <label>
-            From
-            <input
-              value={draft.from}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  from: event.target.value,
-                }))
-              }
-              placeholder="EUR"
-              maxLength={3}
-            />
-          </label>
-          <label>
-            To
-            <input
-              value={draft.to}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  to: event.target.value,
-                }))
-              }
-              placeholder="GBP"
-              maxLength={3}
-            />
-          </label>
-          <label>
-            Fee
-            <input
-              value={draft.fee}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  fee: event.target.value,
-                }))
-              }
-              placeholder="0.01"
-              inputMode="decimal"
-            />
-          </label>
-        </div>
+        <FormRootError message={errors.root?.message} />
 
-        {error ? <p className="error">{error}</p> : null}
-
-        <div className="actions">
-          <button type="submit">{editingKey ? 'Save Fee' : 'Add Fee'}</button>
-          {editingKey ? (
+        <FormActions>
+          <button type="submit">{editingId ? 'Save Fee' : 'Add Fee'}</button>
+          {editingId ? (
             <button type="button" onClick={cancelEditing}>
               Cancel
             </button>
           ) : null}
-        </div>
-      </form>
-    </section>
+        </FormActions>
+      </StackedForm>
+    </Panel>
   )
 }

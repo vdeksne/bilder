@@ -10,7 +10,7 @@ function parseXml(xml: string): Document {
   return doc
 }
 
-function parseEcbXml(xml: string): ExchangeRates {
+export function parseEcbXml(xml: string): ExchangeRates {
   const doc = parseXml(xml)
   const cubes = Array.from(doc.getElementsByTagName('Cube'))
   const rates: ExchangeRates['rates'] = {}
@@ -37,7 +37,7 @@ function parseEcbXml(xml: string): ExchangeRates {
   return { date, rates }
 }
 
-function parseBolXml(xml: string): ExchangeRates {
+export function parseBolXml(xml: string): ExchangeRates {
   const doc = parseXml(xml)
   const fxRates = Array.from(doc.getElementsByTagName('FxRate'))
   const rates: ExchangeRates['rates'] = {}

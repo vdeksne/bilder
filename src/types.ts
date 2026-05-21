@@ -1,4 +1,5 @@
 export type ConversionFee = {
+  id: string
   from: string
   to: string
   fee: number

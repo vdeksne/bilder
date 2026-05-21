@@ -18,6 +18,8 @@ A client-side React application for configuring direction-specific currency conv
 - React
 - TypeScript
 - Vite
+- Vitest
+- Storybook
 
 ## Prerequisites
 
@@ -38,7 +40,7 @@ npm install
 npm run dev
 ```
 
-Open the URL shown in the terminal (usually `http://localhost:5173`).
+Open the URL shown in the terminal (usually `http://localhost:3000`). The browser opens automatically.
 
 The Vite dev server proxies external rate requests to avoid browser CORS restrictions:
 
@@ -56,6 +58,67 @@ npm run build
 ```bash
 npm run lint
 ```
+
+## Tests
+
+Unit tests use [Vitest](https://vitest.dev/) and cover the core business logic:
+
+- **Conversion math** — cross rates, fee deduction, supported currencies
+- **Form validation** — fee and conversion Yup schemas
+- **Fee persistence** — reading, filtering, upserting, and removing stored fees
+- **Rate parsing** — ECB and Bank of Lithuania XML parsing (with mocked HTTP for fetch)
+
+Run all unit tests:
+
+```bash
+npm test
+```
+
+Run unit tests in watch mode while developing:
+
+```bash
+npm run test:watch
+```
+
+Run Storybook browser tests (requires Playwright):
+
+```bash
+npm run test:storybook
+```
+
+Test files live next to the code they exercise:
+
+```text
+src/utils/conversion.test.ts
+src/utils/feesStorage.test.ts
+src/validation/schemas.test.ts
+src/services/exchangeRates.test.ts
+```
+
+## Storybook
+
+Run the component library locally:
+
+```bash
+npm run storybook
+```
+
+Open `http://localhost:6006`.
+
+Build a static Storybook site:
+
+```bash
+npm run build-storybook
+```
+
+Stories are grouped as:
+
+- `Pages/App` — full application
+- `Features/*` — fee table, forms, conversion result
+- `Form/*` — reusable form primitives
+- `Layout/Panel` — panel wrapper
+
+Storybook uses the same ECB/BoL proxy as the app, so live conversion works inside stories too.
 
 ## Usage
 
@@ -97,6 +160,9 @@ src/
     exchangeRates.ts
   utils/
     conversion.ts
+    feesStorage.ts
+  validation/
+    schemas.ts
   App.tsx
   constants.ts
   types.ts

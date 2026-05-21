@@ -1,195 +1,165 @@
+import { yupResolver } from '@hookform/resolvers/yup'
 import { useMemo, useState } from 'react'
-import type { FormEvent } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
+import { DEFAULT_CURRENCIES, RATE_PROVIDER_OPTIONS } from '../constants'
 import { fetchExchangeRates } from '../services/exchangeRates'
-import type { ConversionResult, RateProvider } from '../types'
+import type { ConversionResult } from '../types'
 import { convertAmount, getSupportedCurrencies } from '../utils/conversion'
+import {
+  conversionFormSchema,
+  type ConversionFormValues,
+} from '../validation/schemas'
+import { ConversionResultPanel } from './ConversionResultPanel'
+import { CurrencySelectField } from './form/CurrencySelectField'
+import { FieldRow } from './form/FieldRow'
+import { FormRootError } from './form/FormRootError'
+import { SelectFormField } from './form/SelectFormField'
+import { StackedForm } from './form/StackedForm'
+import { TextFormField } from './form/TextFormField'
+import { Panel } from './Panel'
 
 type ConversionFormProps = {
   getFee: (from: string, to: string) => number
 }
 
-type ConversionState = {
-  convertedAmount: number
-  netAmount: number
-  rate: number
-  fee: number
+type ConversionState = ConversionResult & {
   rateDate: string
+  fromCurrency: string
+  toCurrency: string
+}
+
+const defaultValues: ConversionFormValues = {
+  amount: 100,
+  fromCurrency: 'EUR',
+  toCurrency: 'GBP',
+  provider: 'ecb',
 }
 
 export function ConversionForm({ getFee }: ConversionFormProps) {
-  const [amount, setAmount] = useState('100')
-  const [fromCurrency, setFromCurrency] = useState('EUR')
-  const [toCurrency, setToCurrency] = useState('GBP')
-  const [provider, setProvider] = useState<RateProvider>('ecb')
-  const [availableCurrencies, setAvailableCurrencies] = useState<string[]>([
-    'EUR',
-    'GBP',
-    'USD',
-  ])
+  const [availableCurrencies, setAvailableCurrencies] =
+    useState<string[]>(DEFAULT_CURRENCIES)
   const [result, setResult] = useState<ConversionState | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [submissionError, setSubmissionError] = useState<string | null>(null)
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { errors, isSubmitting },
+  } = useForm<ConversionFormValues>({
+    resolver: yupResolver(conversionFormSchema),
+    defaultValues,
+    mode: 'onTouched',
+  })
+
+  const fromCurrency = useWatch({ control, name: 'fromCurrency' })
+  const toCurrency = useWatch({ control, name: 'toCurrency' })
 
   const selectedFee = useMemo(
     () => getFee(fromCurrency, toCurrency),
     [fromCurrency, getFee, toCurrency],
   )
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setError(null)
+  const onSubmit = handleSubmit(async (values) => {
+    setSubmissionError(null)
     setResult(null)
 
-    const parsedAmount = Number.parseFloat(amount)
-
-    if (Number.isNaN(parsedAmount) || parsedAmount < 0) {
-      setError('Amount must be a non-negative number.')
-      return
-    }
-
-    if (fromCurrency === toCurrency) {
-      setError('Source and target currency must be different.')
-      return
-    }
-
-    setIsLoading(true)
-
     try {
-      const exchangeRates = await fetchExchangeRates(provider)
+      const exchangeRates = await fetchExchangeRates(values.provider)
       const currencies = getSupportedCurrencies(exchangeRates.rates)
 
       setAvailableCurrencies(currencies)
 
-      if (!currencies.includes(fromCurrency) || !currencies.includes(toCurrency)) {
+      if (
+        !currencies.includes(values.fromCurrency) ||
+        !currencies.includes(values.toCurrency)
+      ) {
         throw new Error(
-          `Unsupported currency pair: ${fromCurrency} to ${toCurrency}`,
+          `Unsupported currency pair: ${values.fromCurrency} to ${values.toCurrency}`,
         )
       }
 
+      const fee = getFee(values.fromCurrency, values.toCurrency)
       const conversion: ConversionResult = convertAmount(
-        parsedAmount,
-        fromCurrency,
-        toCurrency,
+        values.amount,
+        values.fromCurrency,
+        values.toCurrency,
         exchangeRates.rates,
-        selectedFee,
+        fee,
       )
 
       setResult({
         ...conversion,
         rateDate: exchangeRates.date,
+        fromCurrency: values.fromCurrency,
+        toCurrency: values.toCurrency,
       })
     } catch (conversionError) {
       const message =
         conversionError instanceof Error
           ? conversionError.message
           : 'Conversion failed.'
-      setError(message)
-    } finally {
-      setIsLoading(false)
+      setSubmissionError(message)
     }
-  }
+  })
 
   return (
-    <section className="panel">
-      <h2>Currency Conversion</h2>
-      <p className="hint">
-        The fee is deducted before conversion using the formula{' '}
-        <code>(amount - amount * fee) * rate</code>. Unconfigured pairs use a
-        default fee of 0.01.
-      </p>
+    <Panel
+      title="Currency Conversion"
+      description={
+        <>
+          The fee is deducted before conversion using the formula{' '}
+          <code>(amount - amount * fee) * rate</code>. Unconfigured pairs use a
+          default fee of 0.01.
+        </>
+      }
+    >
+      <StackedForm onSubmit={onSubmit}>
+        <FieldRow>
+          <TextFormField
+            label="Amount"
+            error={errors.amount?.message}
+            registration={register('amount', { valueAsNumber: true })}
+            inputMode="decimal"
+            step="any"
+          />
+          <CurrencySelectField
+            label="From"
+            error={errors.fromCurrency?.message}
+            registration={register('fromCurrency')}
+            currencies={availableCurrencies}
+          />
+          <CurrencySelectField
+            label="To"
+            error={errors.toCurrency?.message}
+            registration={register('toCurrency')}
+            currencies={availableCurrencies}
+          />
+          <SelectFormField
+            label="Rate source"
+            error={errors.provider?.message}
+            registration={register('provider')}
+            options={RATE_PROVIDER_OPTIONS.map((option) => ({
+              value: option.value,
+              label: option.label,
+            }))}
+          />
+        </FieldRow>
 
-      <form className="stacked-form" onSubmit={handleSubmit}>
-        <div className="field-row">
-          <label>
-            Amount
-            <input
-              value={amount}
-              onChange={(event) => setAmount(event.target.value)}
-              inputMode="decimal"
-            />
-          </label>
-          <label>
-            From
-            <select
-              value={fromCurrency}
-              onChange={(event) => setFromCurrency(event.target.value)}
-            >
-              {availableCurrencies.map((currency) => (
-                <option key={currency} value={currency}>
-                  {currency}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            To
-            <select
-              value={toCurrency}
-              onChange={(event) => setToCurrency(event.target.value)}
-            >
-              {availableCurrencies.map((currency) => (
-                <option key={currency} value={currency}>
-                  {currency}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Rate source
-            <select
-              value={provider}
-              onChange={(event) =>
-                setProvider(event.target.value as RateProvider)
-              }
-            >
-              <option value="ecb">ECB</option>
-              <option value="bol">Bank of Lithuania</option>
-            </select>
-          </label>
-        </div>
+        <FormRootError message={errors.root?.message} />
 
         <p className="meta">
           Configured fee for {fromCurrency} to {toCurrency}: {selectedFee}
         </p>
 
-        <button type="submit" disabled={isLoading}>
-          {isLoading ? 'Converting...' : 'Convert'}
+        <button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? 'Converting...' : 'Convert'}
         </button>
-      </form>
+      </StackedForm>
 
-      {error ? <p className="error">{error}</p> : null}
+      <FormRootError message={submissionError ?? undefined} />
 
-      {result ? (
-        <div className="result">
-          <h3>Result</h3>
-          <dl>
-            <div>
-              <dt>Rate date</dt>
-              <dd>{result.rateDate}</dd>
-            </div>
-            <div>
-              <dt>Applied fee</dt>
-              <dd>{result.fee}</dd>
-            </div>
-            <div>
-              <dt>Amount after fee</dt>
-              <dd>
-                {result.netAmount.toFixed(4)} {fromCurrency}
-              </dd>
-            </div>
-            <div>
-              <dt>Exchange rate</dt>
-              <dd>{result.rate.toFixed(6)}</dd>
-            </div>
-            <div>
-              <dt>Converted amount</dt>
-              <dd>
-                {result.convertedAmount.toFixed(4)} {toCurrency}
-              </dd>
-            </div>
-          </dl>
-        </div>
-      ) : null}
-    </section>
+      {result ? <ConversionResultPanel {...result} /> : null}
+    </Panel>
   )
 }
