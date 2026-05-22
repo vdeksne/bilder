@@ -44,7 +44,3 @@ Rough map of `src/`:
 - `validation/` — Yup schemas for fees and conversion
 
 Tests sit beside the modules they cover (`*.test.ts`).
-
-## Limits
-
-Rate feeds are proxied in dev (Vite) and on Vercel (`vercel.json` rewrites). Other hosts need equivalent `/api/ecb` and `/api/bol` routing. ECB and BoL can disagree; the app does not reconcile them. Fees are per browser, not shared.
