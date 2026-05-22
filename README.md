@@ -47,4 +47,4 @@ Tests sit beside the modules they cover (`*.test.ts`).
 
 ## Limits
 
-No backend: production would need its own proxy or API for the rate feeds. ECB and BoL can disagree; the app does not reconcile them. Fees are per browser, not shared.
+Rate feeds are proxied in dev (Vite) and on Vercel (`vercel.json` rewrites). Other hosts need equivalent `/api/ecb` and `/api/bol` routing. ECB and BoL can disagree; the app does not reconcile them. Fees are per browser, not shared.
