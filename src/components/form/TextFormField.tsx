@@ -1,5 +1,6 @@
 import type { InputHTMLAttributes } from 'react'
 import type { UseFormRegisterReturn } from 'react-hook-form'
+import { Input } from '@/components/ui/input'
 import { FormField } from './FormField'
 
 type TextFormFieldProps = {
@@ -16,7 +17,7 @@ export function TextFormField({
 }: TextFormFieldProps) {
   return (
     <FormField label={label} error={error}>
-      <input
+      <Input
         {...registration}
         {...inputProps}
         aria-invalid={Boolean(error)}

@@ -15,10 +15,11 @@ type Story = StoryObj<typeof meta>
 export const Default: Story = {
   render: () => (
     <RhfStoryWrapper defaultValues={{ fromCurrency: 'EUR' }}>
-      {(register) => (
+      {({ control }) => (
         <CurrencySelectField
           label="From"
-          registration={register('fromCurrency')}
+          name="fromCurrency"
+          control={control}
           currencies={DEFAULT_CURRENCIES}
         />
       )}
@@ -29,11 +30,12 @@ export const Default: Story = {
 export const WithError: Story = {
   render: () => (
     <RhfStoryWrapper defaultValues={{ toCurrency: 'EUR' }}>
-      {(register) => (
+      {({ control }) => (
         <CurrencySelectField
           label="To"
           error="Source and target currency must be different."
-          registration={register('toCurrency')}
+          name="toCurrency"
+          control={control}
           currencies={DEFAULT_CURRENCIES}
         />
       )}

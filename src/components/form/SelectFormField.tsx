@@ -1,5 +1,11 @@
-import type { SelectHTMLAttributes } from 'react'
-import type { UseFormRegisterReturn } from 'react-hook-form'
+import { Controller, type Control, type FieldPath, type FieldValues } from 'react-hook-form'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { FormField } from './FormField'
 
 export type SelectOption = {
@@ -7,33 +13,44 @@ export type SelectOption = {
   label: string
 }
 
-type SelectFormFieldProps = {
+type SelectFormFieldProps<T extends FieldValues> = {
   label: string
   error?: string
-  registration: UseFormRegisterReturn
+  name: FieldPath<T>
+  control: Control<T>
   options: SelectOption[]
-} & Omit<SelectHTMLAttributes<HTMLSelectElement>, 'name'>
+}
 
-export function SelectFormField({
+export function SelectFormField<T extends FieldValues>({
   label,
   error,
-  registration,
+  name,
+  control,
   options,
-  ...selectProps
-}: SelectFormFieldProps) {
+}: SelectFormFieldProps<T>) {
   return (
-    <FormField label={label} error={error}>
-      <select
-        {...registration}
-        {...selectProps}
-        aria-invalid={Boolean(error)}
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </FormField>
+    <Controller
+      name={name}
+      control={control}
+      render={({ field }) => (
+        <FormField label={label} error={error}>
+          <Select value={field.value} onValueChange={field.onChange}>
+            <SelectTrigger
+              className="w-full"
+              aria-invalid={Boolean(error)}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {options.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </FormField>
+      )}
+    />
   )
 }

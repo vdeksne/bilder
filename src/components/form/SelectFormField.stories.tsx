@@ -15,10 +15,11 @@ type Story = StoryObj<typeof meta>
 export const RateProvider: Story = {
   render: () => (
     <RhfStoryWrapper defaultValues={{ provider: 'ecb' }}>
-      {(register) => (
+      {({ control }) => (
         <SelectFormField
           label="Rate source"
-          registration={register('provider')}
+          name="provider"
+          control={control}
           options={RATE_PROVIDER_OPTIONS.map((option) => ({
             value: option.value,
             label: option.label,
@@ -32,11 +33,12 @@ export const RateProvider: Story = {
 export const WithError: Story = {
   render: () => (
     <RhfStoryWrapper defaultValues={{ provider: 'ecb' }}>
-      {(register) => (
+      {({ control }) => (
         <SelectFormField
           label="Rate source"
           error="Rate source is required."
-          registration={register('provider')}
+          name="provider"
+          control={control}
           options={RATE_PROVIDER_OPTIONS.map((option) => ({
             value: option.value,
             label: option.label,

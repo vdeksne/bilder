@@ -1,7 +1,11 @@
 import { yupResolver } from '@hookform/resolvers/yup'
-import { useMemo, useState } from 'react'
+import { ArrowRightLeftIcon, Loader2Icon } from 'lucide-react'
+import { useMemo } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
-import { DEFAULT_CURRENCIES, RATE_PROVIDER_OPTIONS } from '../constants'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { RATE_PROVIDER_OPTIONS } from '../constants'
+import { useConversionSubmission } from '../hooks/useConversionSubmission'
 import { fetchExchangeRates } from '../services/exchangeRates'
 import type { ConversionResult } from '../types'
 import { convertAmount, getSupportedCurrencies } from '../utils/conversion'
@@ -22,12 +26,6 @@ type ConversionFormProps = {
   getFee: (from: string, to: string) => number
 }
 
-type ConversionState = ConversionResult & {
-  rateDate: string
-  fromCurrency: string
-  toCurrency: string
-}
-
 const defaultValues: ConversionFormValues = {
   amount: 100,
   fromCurrency: 'EUR',
@@ -36,10 +34,14 @@ const defaultValues: ConversionFormValues = {
 }
 
 export function ConversionForm({ getFee }: ConversionFormProps) {
-  const [availableCurrencies, setAvailableCurrencies] =
-    useState<string[]>(DEFAULT_CURRENCIES)
-  const [result, setResult] = useState<ConversionState | null>(null)
-  const [submissionError, setSubmissionError] = useState<string | null>(null)
+  const {
+    availableCurrencies,
+    result,
+    submissionError,
+    resetSubmission,
+    setSuccess,
+    setError,
+  } = useConversionSubmission()
 
   const {
     register,
@@ -61,14 +63,11 @@ export function ConversionForm({ getFee }: ConversionFormProps) {
   )
 
   const onSubmit = handleSubmit(async (values) => {
-    setSubmissionError(null)
-    setResult(null)
+    resetSubmission()
 
     try {
       const exchangeRates = await fetchExchangeRates(values.provider)
       const currencies = getSupportedCurrencies(exchangeRates.rates)
-
-      setAvailableCurrencies(currencies)
 
       if (
         !currencies.includes(values.fromCurrency) ||
@@ -88,7 +87,7 @@ export function ConversionForm({ getFee }: ConversionFormProps) {
         fee,
       )
 
-      setResult({
+      setSuccess(currencies, {
         ...conversion,
         rateDate: exchangeRates.date,
         fromCurrency: values.fromCurrency,
@@ -99,7 +98,7 @@ export function ConversionForm({ getFee }: ConversionFormProps) {
         conversionError instanceof Error
           ? conversionError.message
           : 'Conversion failed.'
-      setSubmissionError(message)
+      setError(message)
     }
   })
 
@@ -108,9 +107,11 @@ export function ConversionForm({ getFee }: ConversionFormProps) {
       title="Currency Conversion"
       description={
         <>
-          The fee is deducted before conversion using the formula{' '}
-          <code>(amount - amount * fee) * rate</code>. Unconfigured pairs use a
-          default fee of 0.01.
+          The fee is deducted before conversion using{' '}
+          <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
+            (amount - amount * fee) * rate
+          </code>
+          . Unconfigured pairs use a default fee of 0.01.
         </>
       }
     >
@@ -126,19 +127,22 @@ export function ConversionForm({ getFee }: ConversionFormProps) {
           <CurrencySelectField
             label="From"
             error={errors.fromCurrency?.message}
-            registration={register('fromCurrency')}
+            name="fromCurrency"
+            control={control}
             currencies={availableCurrencies}
           />
           <CurrencySelectField
             label="To"
             error={errors.toCurrency?.message}
-            registration={register('toCurrency')}
+            name="toCurrency"
+            control={control}
             currencies={availableCurrencies}
           />
           <SelectFormField
             label="Rate source"
             error={errors.provider?.message}
-            registration={register('provider')}
+            name="provider"
+            control={control}
             options={RATE_PROVIDER_OPTIONS.map((option) => ({
               value: option.value,
               label: option.label,
@@ -148,13 +152,27 @@ export function ConversionForm({ getFee }: ConversionFormProps) {
 
         <FormRootError message={errors.root?.message} />
 
-        <p className="meta">
-          Configured fee for {fromCurrency} to {toCurrency}: {selectedFee}
-        </p>
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <span>Configured fee for</span>
+          <Badge variant="outline">{fromCurrency}</Badge>
+          <ArrowRightLeftIcon className="size-3.5" />
+          <Badge variant="outline">{toCurrency}</Badge>
+          <span>:</span>
+          <Badge variant="secondary" className="font-mono">
+            {selectedFee}
+          </Badge>
+        </div>
 
-        <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Converting...' : 'Convert'}
-        </button>
+        <Button type="submit" disabled={isSubmitting} className="w-fit">
+          {isSubmitting ? (
+            <>
+              <Loader2Icon className="animate-spin" />
+              Converting...
+            </>
+          ) : (
+            'Convert'
+          )}
+        </Button>
       </StackedForm>
 
       <FormRootError message={submissionError ?? undefined} />

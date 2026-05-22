@@ -1,4 +1,4 @@
-import { DEFAULT_FEE } from '../constants'
+import { DEFAULT_FEE, FEES_STORAGE_KEY } from '../constants'
 import type { ConversionFee } from '../types'
 
 export function createFeeId(): string {
@@ -8,17 +8,26 @@ export function createFeeId(): string {
 function isValidFeeEntry(
   fee: unknown,
 ): fee is { id?: string; from: string; to: string; fee: number } {
+  if (typeof fee !== 'object' || fee === null) {
+    return false
+  }
+
+  const entry = fee as {
+    id?: unknown
+    from?: unknown
+    to?: unknown
+    fee?: unknown
+  }
+
   return (
-    typeof fee === 'object' &&
-    fee !== null &&
-    typeof fee.from === 'string' &&
-    typeof fee.to === 'string' &&
-    typeof fee.fee === 'number' &&
-    fee.from.length > 0 &&
-    fee.to.length > 0 &&
-    fee.fee >= 0 &&
-    (fee.id === undefined ||
-      (typeof fee.id === 'string' && fee.id.length > 0))
+    typeof entry.from === 'string' &&
+    typeof entry.to === 'string' &&
+    typeof entry.fee === 'number' &&
+    entry.from.length > 0 &&
+    entry.to.length > 0 &&
+    entry.fee >= 0 &&
+    (entry.id === undefined ||
+      (typeof entry.id === 'string' && entry.id.length > 0))
   )
 }
 
@@ -45,6 +54,10 @@ export function readStoredFeesFromRaw(raw: string | null): ConversionFee[] {
   } catch {
     return []
   }
+}
+
+export function writeStoredFees(fees: ConversionFee[]): void {
+  localStorage.setItem(FEES_STORAGE_KEY, JSON.stringify(fees))
 }
 
 export function hasSameDirection(

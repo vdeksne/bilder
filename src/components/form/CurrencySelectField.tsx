@@ -1,24 +1,27 @@
-import type { UseFormRegisterReturn } from 'react-hook-form'
+import type { Control, FieldPath, FieldValues } from 'react-hook-form'
 import { SelectFormField } from './SelectFormField'
 
-type CurrencySelectFieldProps = {
+type CurrencySelectFieldProps<T extends FieldValues> = {
   label: string
   error?: string
-  registration: UseFormRegisterReturn
+  name: FieldPath<T>
+  control: Control<T>
   currencies: string[]
 }
 
-export function CurrencySelectField({
+export function CurrencySelectField<T extends FieldValues>({
   label,
   error,
-  registration,
+  name,
+  control,
   currencies,
-}: CurrencySelectFieldProps) {
+}: CurrencySelectFieldProps<T>) {
   return (
     <SelectFormField
       label={label}
       error={error}
-      registration={registration}
+      name={name}
+      control={control}
       options={currencies.map((currency) => ({
         value: currency,
         label: currency,

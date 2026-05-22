@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { FEES_STORAGE_KEY } from '../constants'
 import type { ConversionFee } from '../types'
 import {
@@ -6,6 +6,7 @@ import {
   readStoredFeesFromRaw,
   removeFeeFromList,
   upsertFeeInList,
+  writeStoredFees,
 } from '../utils/feesStorage'
 
 function readStoredFees(): ConversionFee[] {
@@ -15,21 +16,25 @@ function readStoredFees(): ConversionFee[] {
 export function useConversionFees() {
   const [fees, setFees] = useState<ConversionFee[]>(() => readStoredFees())
 
-  useEffect(() => {
-    localStorage.setItem(FEES_STORAGE_KEY, JSON.stringify(fees))
-  }, [fees])
-
   const getFee = useCallback(
     (from: string, to: string): number => getConfiguredFee(fees, from, to),
     [fees],
   )
 
   const upsertFee = useCallback((fee: ConversionFee) => {
-    setFees((currentFees) => upsertFeeInList(currentFees, fee))
+    setFees((currentFees) => {
+      const nextFees = upsertFeeInList(currentFees, fee)
+      writeStoredFees(nextFees)
+      return nextFees
+    })
   }, [])
 
   const removeFee = useCallback((id: string) => {
-    setFees((currentFees) => removeFeeFromList(currentFees, id))
+    setFees((currentFees) => {
+      const nextFees = removeFeeFromList(currentFees, id)
+      writeStoredFees(nextFees)
+      return nextFees
+    })
   }, [])
 
   return {

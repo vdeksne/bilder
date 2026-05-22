@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import {
   useForm,
+  type Control,
   type DefaultValues,
   type FieldValues,
   type UseFormRegister,
@@ -8,14 +9,17 @@ import {
 
 type RhfStoryWrapperProps<T extends FieldValues> = {
   defaultValues: DefaultValues<T>
-  children: (register: UseFormRegister<T>) => ReactNode
+  children: (helpers: {
+    register: UseFormRegister<T>
+    control: Control<T>
+  }) => ReactNode
 }
 
 export function RhfStoryWrapper<T extends FieldValues>({
   defaultValues,
   children,
 }: RhfStoryWrapperProps<T>) {
-  const { register } = useForm<T>({ defaultValues })
+  const { register, control } = useForm<T>({ defaultValues })
 
-  return <>{children(register)}</>
+  return <>{children({ register, control })}</>
 }

@@ -1,4 +1,15 @@
 import { useMemo } from 'react'
+import { PencilIcon, Trash2Icon } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import type { ConversionFee } from '../types'
 
 type FeeTableProps = {
@@ -17,40 +28,59 @@ export function FeeTable({ fees, onEdit, onRemove }: FeeTableProps) {
   )
 
   if (sortedFees.length === 0) {
-    return <p className="empty-state">No custom fees configured yet.</p>
+    return (
+      <p className="rounded-lg border border-dashed bg-muted/30 px-4 py-8 text-center text-sm text-muted-foreground">
+        No custom fees configured yet. Add a direction-specific fee below to
+        override the default of 0.01.
+      </p>
+    )
   }
 
   return (
-    <table className="fee-table">
-      <thead>
-        <tr>
-          <th>From</th>
-          <th>To</th>
-          <th>Fee</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>From</TableHead>
+          <TableHead>To</TableHead>
+          <TableHead>Fee</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
         {sortedFees.map((fee) => (
-          <tr key={fee.id}>
-            <td>{fee.from}</td>
-            <td>{fee.to}</td>
-            <td>{fee.fee}</td>
-            <td className="actions">
-              <button type="button" onClick={() => onEdit(fee)}>
-                Edit
-              </button>
-              <button
-                type="button"
-                className="danger"
-                onClick={() => onRemove(fee.id)}
-              >
-                Remove
-              </button>
-            </td>
-          </tr>
+          <TableRow key={fee.id}>
+            <TableCell>
+              <Badge variant="secondary">{fee.from}</Badge>
+            </TableCell>
+            <TableCell>
+              <Badge variant="secondary">{fee.to}</Badge>
+            </TableCell>
+            <TableCell className="font-mono">{fee.fee}</TableCell>
+            <TableCell className="text-right">
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onEdit(fee)}
+                >
+                  <PencilIcon />
+                  Edit
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => onRemove(fee.id)}
+                >
+                  <Trash2Icon />
+                  Remove
+                </Button>
+              </div>
+            </TableCell>
+          </TableRow>
         ))}
-      </tbody>
-    </table>
+      </TableBody>
+    </Table>
   )
 }

@@ -1,5 +1,8 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
+import { DEFAULT_CURRENCIES } from '../constants'
 import type { ConversionFee } from '../types'
 import {
   feeFormResolver,
@@ -7,6 +10,7 @@ import {
   type FeeFormValues,
 } from '../validation/schemas'
 import { FeeTable } from './FeeTable'
+import { CurrencyComboboxField } from './form/CurrencyComboboxField'
 import { FormActions } from './form/FormActions'
 import { FieldRow } from './form/FieldRow'
 import { FormRootError } from './form/FormRootError'
@@ -37,6 +41,7 @@ export function FeeConfigForm({
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors },
   } = useForm<FeeFormValues>({
     resolver: feeFormResolver,
@@ -64,36 +69,50 @@ export function FeeConfigForm({
     reset(emptyValues)
   }
 
+  const currencyOptions = useMemo(() => {
+    const fromFees = fees.flatMap((fee) => [fee.from, fee.to])
+
+    return [...new Set([...DEFAULT_CURRENCIES, ...fromFees])].sort()
+  }, [fees])
+
   return (
     <Panel
       title="Conversion Fees"
       description={
         <>
-          Fees are direction-specific fractions. For example, enter 0.2 for a 20%
-          fee on EUR to GBP conversions.
+          Fees are direction-specific fractions. Choose a currency from the list
+          or type a 3-letter ISO code. For example, enter{' '}
+          <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
+            0.2
+          </code>{' '}
+          for a 20% fee on EUR to GBP conversions.
         </>
       }
     >
       <FeeTable fees={fees} onEdit={startEditing} onRemove={onRemoveFee} />
 
+      <Separator />
+
       <StackedForm onSubmit={onSubmit}>
-        <h3>{editingId ? 'Edit Fee' : 'Add Fee'}</h3>
-        <FieldRow>
-          <TextFormField
+        <h3 className="text-sm font-medium">
+          {editingId ? 'Edit fee' : 'Add fee'}
+        </h3>
+        <FieldRow className="lg:grid-cols-3">
+          <CurrencyComboboxField
             label="From"
             error={errors.from?.message}
-            registration={register('from')}
+            name="from"
+            control={control}
+            currencies={currencyOptions}
             placeholder="EUR"
-            maxLength={3}
-            autoComplete="off"
           />
-          <TextFormField
+          <CurrencyComboboxField
             label="To"
             error={errors.to?.message}
-            registration={register('to')}
+            name="to"
+            control={control}
+            currencies={currencyOptions}
             placeholder="GBP"
-            maxLength={3}
-            autoComplete="off"
           />
           <TextFormField
             label="Fee"
@@ -108,11 +127,13 @@ export function FeeConfigForm({
         <FormRootError message={errors.root?.message} />
 
         <FormActions>
-          <button type="submit">{editingId ? 'Save Fee' : 'Add Fee'}</button>
+          <Button type="submit">
+            {editingId ? 'Save fee' : 'Add fee'}
+          </Button>
           {editingId ? (
-            <button type="button" onClick={cancelEditing}>
+            <Button type="button" variant="outline" onClick={cancelEditing}>
               Cancel
-            </button>
+            </Button>
           ) : null}
         </FormActions>
       </StackedForm>

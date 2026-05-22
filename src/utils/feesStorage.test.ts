@@ -35,13 +35,22 @@ describe('readStoredFeesFromRaw', () => {
   })
 
   it('assigns ids to legacy entries without one', () => {
-    vi.spyOn(crypto, 'randomUUID').mockReturnValue('generated-id')
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue(
+      '00000000-0000-4000-8000-000000000001',
+    )
 
     expect(
       readStoredFeesFromRaw(
         JSON.stringify([{ from: 'EUR', to: 'GBP', fee: 0.01 }]),
       ),
-    ).toEqual([{ id: 'generated-id', from: 'EUR', to: 'GBP', fee: 0.01 }])
+    ).toEqual([
+      {
+        id: '00000000-0000-4000-8000-000000000001',
+        from: 'EUR',
+        to: 'GBP',
+        fee: 0.01,
+      },
+    ])
   })
 })
 

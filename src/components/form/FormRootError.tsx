@@ -1,3 +1,6 @@
+import { AlertCircleIcon } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+
 type FormRootErrorProps = {
   message?: string
 }
@@ -7,5 +10,10 @@ export function FormRootError({ message }: FormRootErrorProps) {
     return null
   }
 
-  return <p className="error">{message}</p>
+  return (
+    <Alert variant="destructive">
+      <AlertCircleIcon />
+      <AlertDescription>{message}</AlertDescription>
+    </Alert>
+  )
 }

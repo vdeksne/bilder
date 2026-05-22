@@ -58,10 +58,12 @@ describe('toConversionFee', () => {
   })
 
   it('generates an id for new fees', () => {
-    vi.spyOn(crypto, 'randomUUID').mockReturnValue('generated-id')
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue(
+      '00000000-0000-4000-8000-000000000002',
+    )
 
     expect(toConversionFee({ from: 'EUR', to: 'GBP', fee: '0.02' })).toEqual({
-      id: 'generated-id',
+      id: '00000000-0000-4000-8000-000000000002',
       from: 'EUR',
       to: 'GBP',
       fee: 0.02,

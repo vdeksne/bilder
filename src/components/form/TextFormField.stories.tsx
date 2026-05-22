@@ -14,7 +14,7 @@ type Story = StoryObj<typeof meta>
 export const Default: Story = {
   render: () => (
     <RhfStoryWrapper defaultValues={{ from: '' }}>
-      {(register) => (
+      {({ register }) => (
         <TextFormField
           label="From"
           registration={register('from')}
@@ -29,7 +29,7 @@ export const Default: Story = {
 export const WithError: Story = {
   render: () => (
     <RhfStoryWrapper defaultValues={{ fee: '' }}>
-      {(register) => (
+      {({ register }) => (
         <TextFormField
           label="Fee"
           error="Fee must be a non-negative number."
@@ -45,7 +45,7 @@ export const WithError: Story = {
 export const DecimalAmount: Story = {
   render: () => (
     <RhfStoryWrapper defaultValues={{ amount: 100 }}>
-      {(register) => (
+      {({ register }) => (
         <TextFormField
           label="Amount"
           registration={register('amount', { valueAsNumber: true })}

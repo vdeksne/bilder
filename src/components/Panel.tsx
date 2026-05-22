@@ -1,17 +1,28 @@
 import type { ReactNode } from 'react'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 
 type PanelProps = {
   title: string
   description: ReactNode
   children: ReactNode
+  className?: string
 }
 
-export function Panel({ title, description, children }: PanelProps) {
+export function Panel({ title, description, children, className }: PanelProps) {
   return (
-    <section className="panel">
-      <h2>{title}</h2>
-      <p className="hint">{description}</p>
-      {children}
-    </section>
+    <Card className={cn('shadow-sm', className)}>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-6">{children}</CardContent>
+    </Card>
   )
 }
